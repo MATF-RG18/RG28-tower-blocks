@@ -33,6 +33,10 @@
 
 # CLion internal files
 /.idea
+*.idea
+
+# Text
+*.txt
 
 # Build directories
 /build
