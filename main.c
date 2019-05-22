@@ -20,14 +20,20 @@ GLfloat nz = -0.1;
 // Promenljiva uz pomoc uz pomoc koje povecavamo koordinate duz y ose tako da kutije ne ulaze jedna u drugu, nego jedna na drugu
 GLfloat k = 0;
 
-// Promenljiva za kretanje levo desno. Ako je vrednost 1 ide desno, a ako je 0 kutija ide levo
-GLint t=0;
+// Fleg za kretanje levo desno. Ako je vrednost 1 ide desno, a ako je 0 kutija ide levo
+int t=0;
 
-// Promenljiva za kretanje kutije dole. Ako je vrednost 1 kutija ide na dole, ako je 0 ne ide.
-GLint p=0;
+// Fleg za kretanje kutije dole. Ako je vrednost 1 kutija ide na dole, ako je 0 ne ide.
+int p=0;
+
+// Fleg koji odredjuje da li je animacija u toku.
+int animation_ongoing;
 
 // Promenljiva koja nam sluzi kao brojac koliko je kutija napravljeno
 int i = 0;
+
+// Pocetan broj kutija koje se mogu smestiti u niz, ako napunimo niz povecavamo memoriju realokacijom
+int memorija = 50;
 
 // Struktura u koju smestamo koordinate kutije
 struct Koordinate{
@@ -42,18 +48,24 @@ struct Koordinate{
 // Niz tipa Koordinate u koji smestamo sve kutije koje napravimo
 struct Koordinate* niz;
 
-int animation_ongoing;
+// niz2 koji koristimo prilikom realokacije memorije
+struct Koordinate *niz2;
+
+// Deklaracije funkcija
 void on_display(void);
 void draw(GLfloat x,GLfloat y,GLfloat z,GLfloat nx,GLfloat ny,GLfloat nz);
 void on_timer(int value);
 void graphicsInit();
 void drawScore() ;
+void proveraMemorije();
 void keyboard(unsigned char key, int x, int y);
+
+
 
 int main(int argc, char ** argv)
 {
     // Kreiranje prostora za niz koordinata kutija
-    niz = malloc(50 * sizeof(struct Koordinate));
+    niz = malloc(memorija * sizeof(struct Koordinate));
     if(niz == NULL){
         fprintf(stderr, " Greska u alokaciji memorije");
         exit(1);
@@ -73,14 +85,12 @@ int main(int argc, char ** argv)
     // Program ulazi u glavnu petlju
     glutMainLoop();
 
-    free(niz);
     return 0;
 }
 
 
 void on_display(void)
 {
-
     // Brise se prethodni sadrzaj prozora
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -104,15 +114,14 @@ void on_display(void)
                 draw(niz[j].a, niz[j].b, niz[j].c, niz[j].d, niz[j].e, niz[j].f);
             }
         }
-
-        //  Za prvu kutiju ne treba proveravati udaljenost, zbog toga idemo u else granu
+            //  Za prvu kutiju ne treba proveravati udaljenost, zbog toga idemo u else granu
         else {
-                draw(niz[j].a, niz[j].b, niz[j].c, niz[j].d, niz[j].e, niz[j].f);
+            draw(niz[j].a, niz[j].b, niz[j].c, niz[j].d, niz[j].e, niz[j].f);
         }
 
     }
 
-     // Nova slika se salje na ekran
+    // Nova slika se salje na ekran
     glutSwapBuffers();
 
 }
@@ -183,9 +192,9 @@ void draw(GLfloat x,GLfloat y,GLfloat z,GLfloat nx,GLfloat ny,GLfloat nz){
 void keyboard(unsigned char key, int x, int y)
 {
     switch (key)
-        {
+    {
 
-            // Pokretanje kutije nadole
+        // Pokretanje kutije nadole
         case 'd':
         case 'D':
             p = 1;
@@ -193,8 +202,8 @@ void keyboard(unsigned char key, int x, int y)
             if (!animation_ongoing) {
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
                 animation_ongoing = 1;
-                }
-                break;
+            }
+            break;
 
             // Izlaz
         case 'q':
@@ -218,7 +227,7 @@ void drawScore() {
     // Deklaracija stringa u koji smestamo skor igraca
     char c[13];
 
-    // Smestanje skora u promenljivu c, za svaku kutiju se dobija 100 poena
+    // Smestanje skora u promenljivu c, za svaku smestenu kutiju se dobija 100 poena
     snprintf(c,13,"SCORE : %d  ",i*100);
 
     // Funkcija kojoj prosledjujemo koordinate gde zelimo da se nalazi nas ispis
@@ -231,12 +240,12 @@ void drawScore() {
         glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c[b]);
     }
 
-
 }
+
 void on_timer(int value)
 {
 
-     // Proverava se da li callback dolazi od odgovarajuceg tajmera
+    // Proverava se da li callback dolazi od odgovarajuceg tajmera
 
     if (value != TIMER_ID)
         return;
@@ -248,6 +257,7 @@ void on_timer(int value)
         x += 0.01;
         nx += 0.01;
     }
+
     // Kretanje kutije levo
     if(x>=-0.5 && t == 0 && p == 0) {
         if (x <= -0.499 && x>= -0.501)
@@ -262,7 +272,11 @@ void on_timer(int value)
         ny -= 0.01;
     }
     else {
-    // Smestanje koordinata kutija u niz
+
+        // Provera da li imamo dovoljno prostora u memoriji
+        proveraMemorije();
+
+        // Smestanje koordinata kutija u niz
         niz[i].a = x;
         niz[i].b = y;
         niz[i].c = z;
@@ -270,7 +284,7 @@ void on_timer(int value)
         niz[i].e = ny;
         niz[i].f = nz;
 
-    // Za svaku kutiju povecavamo k i dodajemo ga na y koordinatu, da bi kutije "nalegle" jedna na drugu prilikom spustanja
+        // Za svaku kutiju povecavamo k i dodajemo ga na y koordinatu, da bi kutije "nalegle" jedna na drugu prilikom spustanja
         if (ny < -0.98 + k && y < -0.98 + k){
             i++;
             k = k + 0.02;
@@ -294,6 +308,24 @@ void on_timer(int value)
         glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
     }
 }
+
+    // Vrsimo proveru memorije. Ako smo napunili niz dupliramo velicinu niza
+void proveraMemorije(){
+
+    if(i == memorija) {
+
+        memorija = memorija * 2;
+        niz2 = realloc(niz, memorija * sizeof(struct Koordinate));
+        if (niz2) {
+            niz = niz2;
+        }
+        else{
+            printf("Neuspela realokacija\n");
+            exit(1);
+        }
+    }
+}
+
 
 
 
