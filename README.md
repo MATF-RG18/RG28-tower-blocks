@@ -1,11 +1,11 @@
-# Tower blocks
+# TOWER BLOCKS
 
 # Cilj igre:
 Izgraditi sto je moguce vecu kulu od kutija. Ako izbacena kutija padne pored kutije na vrhu kule igra se zavrsava
 
 # Komande:
 *  s - pokretanje igre
-*  d - spustanje kutije nadole
+*  d - pustanje kutije nadole
 *  q - izlaz iz igre
   
 # Pokretanje:
